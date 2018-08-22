@@ -1,0 +1,32 @@
+table {
+  width: 100%;
+}
+
+tr.jobs-list-detail-row {
+  height: 0;
+}
+
+tr.jobs-list-job-row:not(.jobs-list-expanded-row):hover {
+  background: #797979;
+}
+
+tr.jobs-list-job-row:not(.jobs-list-expanded-row):active {
+  background: #b9b9b9;
+}
+
+.jobs-list-job-row td {
+  border-bottom-width: 0;
+}
+
+.jobs-list-job-detail {
+  overflow: hidden;
+  display: flex;
+}
+
+.jobs-list-job-description {
+  padding: 16px;
+}
+
+.example-element-description-attribution {
+  opacity: 0.5;
+}

@@ -1,0 +1,27 @@
+<table mat-table [dataSource]="dataSource" multiTemplateDataRows class="mat-elevation-z8">
+    <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef> Name </th>
+        <td mat-cell *matCellDef="let job"> {{job.name}} </td>
+    </ng-container>
+    <ng-container matColumnDef="date">
+        <th mat-header-cell *matHeaderCellDef> Date </th>
+        <td mat-cell *matCellDef="let job"> {{job.date | amCalendar}} </td>
+    </ng-container>
+
+    <!-- Row spanning all columns for detail on the job -->
+    <ng-container matColumnDef="expandedDetail">
+        <td mat-cell *matCellDef="let job" [attr.colspan]="columnsToDisplay.length">
+            <div class="jobs-list-job-detail" [@detailExpand]="job === expandedJob ? 'expanded' : 'collapsed'">
+                <div class="jobs-list-job-description">
+                    {{job.name}}
+                </div>
+            </div>
+        </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="columnsToDisplay"></tr>
+    <tr mat-row *matRowDef="let element; columns: columnsToDisplay;" class="jobs-list-job-row" [class.jobs-list-expanded-row]="expandedJob === element"
+        (click)="expandedJob = element">
+    </tr>
+    <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="jobs-list-detail-row"></tr>
+</table>

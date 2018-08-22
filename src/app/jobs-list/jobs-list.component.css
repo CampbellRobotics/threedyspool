@@ -2,11 +2,21 @@ table {
     width: 100%;
 }
 
+mat-row {
+    /* height: 48px; */
+}
+
 .jobs-list-detail-row {
+    min-height: auto;
     height: 0;
 }
 
 .jobs-list-row {
     border-bottom-width: 0;
-    color: #f00;
+}
+
+.job-detail {
+    overflow: hidden;
+    display: flex;
+    padding: 16px;
 }
