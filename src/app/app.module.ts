@@ -8,13 +8,11 @@ import { MomentModule } from 'ngx-moment';
 
 import { AppComponent } from './app.component';
 import { JobsListComponent } from './jobs-list/jobs-list.component';
-import { JobsList2Component } from './jobs-list2/jobs-list2.component';
 
 @NgModule({
     declarations: [
         AppComponent,
         JobsListComponent,
-        JobsList2Component,
     ],
     imports: [
         BrowserModule,

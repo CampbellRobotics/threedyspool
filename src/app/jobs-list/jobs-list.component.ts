@@ -7,9 +7,9 @@ import { Job } from '../job';
  * @title Jobs list with expandable rows
  */
 @Component({
-  selector: 'app-jobs-list2',
-  styleUrls: ['jobs-list2.component.css'],
-  templateUrl: 'jobs-list2.component.html',
+  selector: 'app-jobs-list',
+  styleUrls: ['jobs-list.component.css'],
+  templateUrl: 'jobs-list.component.html',
   animations: [
     trigger('detailExpand', [
       state('collapsed', style({height: '0px', minHeight: '0', display: 'none'})),
@@ -18,7 +18,7 @@ import { Job } from '../job';
     ]),
   ],
 })
-export class JobsList2Component implements OnInit {
+export class JobsListComponent implements OnInit {
   dataSource = JOBS;
   columnsToDisplay = ['name', 'date'];
   expandedJob: Job;
