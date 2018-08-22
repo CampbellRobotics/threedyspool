@@ -1,0 +1,12 @@
+table {
+    width: 100%;
+}
+
+.jobs-list-detail-row {
+    height: 0;
+}
+
+.jobs-list-row {
+    border-bottom-width: 0;
+    color: #f00;
+}
