@@ -5,16 +5,19 @@ export enum JobUsage {
     Other,
 }
 
-export class User {
+export interface User {
     displayName: string;
     email: string;
     photoUrl?: string;
 }
 
-export class Job {
+export interface Job {
     id: number;
     date: Date;
     name: string;
     owner: User;
     usage: JobUsage;
+    origUrl?: string;
+    stlUrl: string;
+    thumbUrl?: string;
 }

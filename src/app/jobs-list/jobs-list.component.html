@@ -20,8 +20,12 @@
     <ng-container matColumnDef="expandedDetail">
         <td mat-cell *matCellDef="let job" [attr.colspan]="columnsToDisplay.length">
             <div class="jobs-list-job-detail" [@detailExpand]="job === expandedJob ? 'expanded' : 'collapsed'">
-                <div class="jobs-list-job-description">
-                    {{job.name}}
+                <div class="jobs-list-img-container" *ngIf="job.thumbUrl">
+                    <img src="{{ job.thumbUrl }}">
+                </div>
+                <div class="jobs-list-downloads mat-primary">
+                    <a href="{{ job.stlUrl }}"><i class="material-icons">cloud_download</i>STL</a>
+                    <a href="{{ job.origUrl }}" *ngIf="job.origUrl"><i class="material-icons">cloud_download</i>Original</a>
                 </div>
             </div>
         </td>
