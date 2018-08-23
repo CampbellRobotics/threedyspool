@@ -1,24 +1,17 @@
 import { Component, OnInit } from '@angular/core';
 import { AngularFireAuth } from 'angularfire2/auth';
-import { auth } from 'firebase';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-login-button',
   templateUrl: './login-button.component.html',
-  styleUrls: ['./login-button.component.css']
+  styleUrls: ['./login-button.component.css'],
+  providers: [AuthService],
 })
 export class LoginButtonComponent implements OnInit {
 
-  constructor(public fireAuth: AngularFireAuth) { }
-  signedIn = false;
+  constructor(public auth: AuthService) { }
 
   ngOnInit() {
   }
-  login() {
-    this.fireAuth.auth.signInWithPopup(new auth.GoogleAuthProvider());
-  }
-  logout() {
-    this.fireAuth.auth.signOut();
-  }
-
 }
