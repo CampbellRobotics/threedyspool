@@ -1,7 +1,7 @@
 import {Component, OnInit} from '@angular/core';
 import {animate, state, style, transition, trigger} from '@angular/animations';
 import { JOBS } from '../mock-jobs';
-import { Job } from '../job';
+import { Job, JobUsage } from '../job';
 
 /**
  * @title Jobs list with expandable rows
@@ -20,8 +20,12 @@ import { Job } from '../job';
 })
 export class JobsListComponent implements OnInit {
   dataSource = JOBS;
-  columnsToDisplay = ['name', 'date'];
+  columnsToDisplay = ['name', 'date', 'owner', 'usage'];
   expandedJob: Job;
+
+  getJobType(val: keyof typeof JobUsage) {
+      return JobUsage[val];
+  }
 
   constructor () {}
 

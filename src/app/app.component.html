@@ -1,3 +1,8 @@
-<h1>{{title}}</h1>
-
-<app-jobs-list></app-jobs-list>
+<mat-toolbar>
+    <span>{{title}}</span>
+    <span class="flex-spacer"></span>
+    <app-login-button></app-login-button>
+</mat-toolbar>
+<div class="app-container">
+    <app-jobs-list></app-jobs-list>
+</div>

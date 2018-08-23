@@ -1,0 +1,9 @@
+.app-container {
+    margin: 0 auto;
+    padding: 20px;
+    max-width: 1200px;
+}
+
+.flex-spacer {
+    flex: 1 1 auto;
+}

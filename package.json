@@ -25,7 +25,6 @@
     "angular2-moment": "^1.9.0",
     "core-js": "^2.5.4",
     "firebase": "^5.4.0",
-    "firebaseui": "^3.3.0",
     "moment": "^2.22.2",
     "ngx-moment": "^3.1.0",
     "rxjs": "^6.0.0",
