@@ -10,11 +10,12 @@ steps = [
     step("""CREATE TABLE jobs (
         id INT PRIMARY KEY,
         name TEXT NOT NULL,
-        owner INT,
+        owner TEXT,
         date INT NOT NULL,
-        usage INT NOT NULL,
+        usage TEXT NOT NULL,
         origUrl TEXT,
         stlUrl TEXT NOT NULL,
         thumbUrl TEXT,
-        FOREIGN KEY(owner) REFERENCES user(id))"""),
+        FOREIGN KEY(owner) REFERENCES user(id))
+    """),
 ]
