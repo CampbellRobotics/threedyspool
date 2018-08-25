@@ -124,7 +124,7 @@ class HttpError(Exception):
 
 
 class BadRequest(HttpError):
-    pass
+    status_code = 400
 
 
 @app.errorhandler(HttpError)
@@ -139,10 +139,9 @@ class Upload(NamedTuple):
     fileobj: Any
 
 
-def check_upload(rq_files: werkzeug.datastructures.ImmutableMultiDict) -> Upload:
-    if 'file' not in rq_files or not rq_files['file']:
-        raise BadRequest('File part missing')
-    file = rq_files['file']
+def check_upload(file: werkzeug.datastructures.FileStorage, which: str) -> Upload:
+    if not file:
+        raise BadRequest(f'Missing {which} file')
     if not file.filename:
         raise BadRequest('File part has no name')
     secured_filename = werkzeug.utils.secure_filename(file.filename)
@@ -160,7 +159,6 @@ def post_job():
         'name',
         'usage',
     )
-    raise BadRequest('wtf')
     for attr in required_attributes:
         if attr not in request.form:
             raise BadRequest(f'Form data is missing {attr}')
@@ -169,9 +167,10 @@ def post_job():
         want_files += ('orig',)
     # note: this is intentionally not a genexp because these we need to
     #       allow all files an equal opportunity to raise an exception ASAP
-    uploads = [check_upload(request.files) for f in want_files]
+    uploads = [check_upload(request.files.get(f), f) for f in want_files]
     for f in uploads:
-        f.fileobj.save(Path(app.config['UPLOAD_PATH']) / f.secure_filename)
+        with (Path(app.config['UPLOAD_PATH']) / f.secure_filename).open('wb') as h:
+            f.fileobj.save(h)
 
     with dbconn:
         dbconn.execute(
