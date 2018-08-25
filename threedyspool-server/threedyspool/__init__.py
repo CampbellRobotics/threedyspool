@@ -123,7 +123,7 @@ class HttpError(Exception):
         }
 
 
-def BadRequest(HttpError):
+class BadRequest(HttpError):
     pass
 
 
