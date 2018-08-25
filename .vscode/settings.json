@@ -1,3 +1,5 @@
 {
-    "terminal.integrated.shell.windows": "C:\\Windows\\system32\\wsl.exe"
+    "terminal.integrated.shell.windows": "C:\\Windows\\system32\\wsl.exe",
+    "python.linting.enabled": false,
+    "python.pythonPath": "C:\\Program Files\\Python37\\python.exe",
 }
