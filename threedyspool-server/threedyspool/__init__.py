@@ -63,10 +63,35 @@ dbconn.row_factory = sqlite3.Row
 class JSONEncoder(flask.json.JSONEncoder):
     def default(self, o: Any) -> Any:
         if dataclasses.is_dataclass(o):
-            return dataclasses.asdict(o)
+            d: dict = dataclasses.asdict(o)
+            if isinstance(o, Job):
+                d['files'] = o.files
+            return d
         return super().default(self, o)
 
 app.json_encoder = JSONEncoder
+
+
+class HttpError(Exception):
+    status_code = 500
+
+    def __init__(self, message: str, status_code: int = None, payload: Any = None) -> None:
+        Exception.__init__(self)
+        self.message = message
+        if status_code is not None:
+            self.status_code = status_code
+        self.payload = payload
+
+    def to_dict(self) -> Dict[str, str]:
+        return {
+            'status': self.__class__.__name__,
+            'message': self.message,
+            'data': self.payload
+        }
+
+
+class BadRequest(HttpError):
+    status_code = 400
 
 
 @dataclass
@@ -84,6 +109,13 @@ class Job:
     usage: str
     thumbUrl: str
     owner: Optional[User] = None
+
+    @property
+    def files(self):
+        jobfiles_dir = get_upload_dir(self.id)
+        if not jobfiles_dir.exists():
+            return []
+        return [get_url_for_model(self.id, name.name) for name in jobfiles_dir.iterdir()]
 
 
 def db_make_obj(klass: Any, row: sqlite3.Row) -> Any:
@@ -117,40 +149,18 @@ def jobs():
     return jsonify(resp)
 
 
-OK_EXTENSIONS = set(['stl', 'stp', 'rvt', 'rfa', 'f3d', 'sat'])
-
-
-def filename_is_ok(name: str) -> bool:
-    return '.' in name and name.rsplit('.', 1)[1].lower() in OK_EXTENSIONS
-
-
-class HttpError(Exception):
-    status_code = 500
-
-    def __init__(self, message: str, status_code: int = None, payload: Any = None) -> None:
-        Exception.__init__(self)
-        self.message = message
-        if status_code is not None:
-            self.status_code = status_code
-        self.payload = payload
-
-    def to_dict(self):
-        return {
-            'status': self.__class__.__name__,
-            'message': self.message,
-            'data': self.payload
-        }
-
-
-class BadRequest(HttpError):
-    status_code = 400
-
-
 @app.errorhandler(HttpError)
 def handle_errors(err: HttpError) -> Response:
     resp = jsonify(err.to_dict())
     resp.status_code = err.status_code
     return resp
+
+
+OK_EXTENSIONS = set(['stl', 'stp', 'rvt', 'rfa', 'f3d', 'sat'])
+
+
+def filename_is_ok(name: str) -> bool:
+    return '.' in name and name.rsplit('.', 1)[1].lower() in OK_EXTENSIONS
 
 
 class Upload(NamedTuple):
@@ -169,7 +179,7 @@ def check_upload(file: werkzeug.datastructures.FileStorage, which: str) -> Uploa
 
 
 def get_url_for_model(job_id: int, model_name: str) -> str:
-    return urljoin(f'{app.config["UPLOAD_PATH_URL"]}/{job_id!s}/', quote(model_name))
+    return urljoin(f'{app.config["UPLOAD_PATH_URL"]}/{job_id!s}/', quote(model_name.encode()))
 
 
 def get_upload_dir(job_id: int) -> Path:
