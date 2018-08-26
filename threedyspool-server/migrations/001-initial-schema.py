@@ -8,14 +8,12 @@ steps = [
         displayName TEXT NOT NULL
     )"""),
     step("""CREATE TABLE jobs (
-        id INT PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         owner TEXT,
-        date INT NOT NULL,
+        date INTEGER NOT NULL,
         usage TEXT NOT NULL,
-        origUrl TEXT,
-        stlUrl TEXT NOT NULL,
         thumbUrl TEXT,
-        FOREIGN KEY(owner) REFERENCES user(id))
+        FOREIGN KEY(owner) REFERENCES users(id))
     """),
 ]

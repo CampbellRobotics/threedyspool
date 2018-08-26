@@ -4,6 +4,7 @@ import os
 import tempfile
 from typing import Generator
 import shutil
+import sqlite3
 
 from flask.testing import FlaskClient
 from werkzeug.test import Client
@@ -14,16 +15,14 @@ import threedyspool
 
 @pytest.fixture
 def client() -> Generator[FlaskClient, None, None]:
-    db_fd, threedyspool.app.config['DB_PATH'] = tempfile.mkstemp()
+    threedyspool.app.config['DB_PATH'] = ':memory:'
     test_upload_path = tempfile.mkdtemp()
     threedyspool.app.config['UPLOAD_PATH'] = test_upload_path
     threedyspool.app.config['TESTING'] = True
     client = threedyspool.app.test_client()
 
     yield client
-    os.close(db_fd)
     shutil.rmtree(test_upload_path)
-    os.unlink(threedyspool.app.config['DB_PATH'])
 
 
 def test_no_jobs(client: FlaskClient):
@@ -32,18 +31,46 @@ def test_no_jobs(client: FlaskClient):
 
 
 def test_new_job(client: FlaskClient):
+    threedyspool.dbconn.execute("INSERT INTO users (id, email, displayName) VALUES ('a', 'a@example.com', 'A A')")
+    resp = client.post('/jobs')
+    assert loads(resp.data) == {'data': None, 'message': 'Form data is missing name', 'status': 'BadRequest'}
     testdata = {
         'name': 'a',
         'usage': '1234',
     }
+
     resp = client.post('/jobs', data=testdata)
-    assert loads(resp.data) == {'data': None, 'message': 'Missing stl file', 'status': 'BadRequest'}
+    assert loads(resp.data) == {'data': None, 'message': 'Job must be uploaded with STL file', 'status': 'BadRequest'}
+    testfiles = {
+        'stl': (BytesIO(b'aa'), 'obj.stl'),
+        'orig': (BytesIO(b'bb'), 'obj.stl'),
+    }
+    testdata2 = testdata.copy()
+    testdata2.update(testfiles)
+    resp = client.post('/jobs', data=testdata2)
+    assert loads(resp.data) ==  {'message': 'Duplicate filenames in request', 'status': 'BadRequest', 'data': None}
+    testfiles = {
+        'stl': (BytesIO(b'aa'), 'obj.notok'),
+        'orig': (BytesIO(b'bb'), 'obj.bad'),
+    }
+    testdata2 = testdata.copy()
+    testdata2.update(testfiles)
+    resp = client.post('/jobs', data=testdata2)
+    assert loads(resp.data) == {
+        'message': "File must have extension in ['f3d', 'rfa', 'rvt', 'sat', 'stl', 'stp']",
+        'status': 'BadRequest', 'data': None}
     testfiles = {
         'stl': (BytesIO(b'aa'), 'obj.stl'),
         'orig': (BytesIO(b'bb'), 'obj.stp'),
     }
     testdata2 = testdata.copy()
     testdata2.update(testfiles)
-    print(testdata2)
     resp = client.post('/jobs', data=testdata2)
-    assert loads(resp.data) == {'message': "uploaded ('stl', 'orig') successfully", 'status': 'ok'}
+    data = loads(resp.data)
+    assert data['message'] == "Files uploaded successfully"
+    assert data['status'] == "ok"
+
+    curs: sqlite3.Cursor = threedyspool.dbconn.execute("SELECT * FROM jobs")
+    jobs = curs.fetchall()
+    # if it isn't, that implies that some bad request got through
+    assert len(jobs) == 1
