@@ -209,10 +209,11 @@ def job(job_id: int) -> Response:
     """
     resp = OK_RESP.copy()
     with db_lock:
-        job = dbconn.execute("""SELECT * FROM jobs WHERE id = ?""", job_id)
+        job = dbconn.execute("""SELECT * FROM jobs WHERE id = ?""", (job_id,))
         resp['data'] = {
-            'job': db_make_obj(Job, job)
+            'job': db_make_obj(Job, job.fetchone())
         }
+        return jsonify(resp)
 
 
 @app.route('/jobs/<int:job_id>/files/<filename>')
