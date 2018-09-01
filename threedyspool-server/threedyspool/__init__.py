@@ -49,16 +49,28 @@ def apply_migrations(dbconn: sqlite3.Connection) -> None:
         backend.apply_migrations(backend.to_apply(migrations))
 
 
-dbconn = sqlite3.connect(
-    app.config['DB_PATH'],
-    detect_types=sqlite3.PARSE_DECLTYPES,
-    check_same_thread=False
-)
-db_lock = RLock()
-with db_lock:
-    apply_migrations(dbconn)
-    dbconn.execute('PRAGMA foreign_keys = ON')
-dbconn.row_factory = sqlite3.Row
+def setup_db():
+    """
+    Set up global DB objects
+
+    This is in a function because it makes it possible for the test suite to
+    nuke them more than once per module load.
+    """
+    global dbconn
+    global db_lock
+    dbconn = sqlite3.connect(
+        app.config['DB_PATH'],
+        detect_types=sqlite3.PARSE_DECLTYPES,
+        check_same_thread=False
+    )
+    db_lock = RLock()
+    with db_lock:
+        apply_migrations(dbconn)
+        dbconn.execute('PRAGMA foreign_keys = ON')
+    dbconn.row_factory = sqlite3.Row
+
+
+setup_db()
 
 
 class JSONEncoder(flask.json.JSONEncoder):

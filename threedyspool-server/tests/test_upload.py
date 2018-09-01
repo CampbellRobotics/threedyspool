@@ -11,6 +11,7 @@ from flask.testing import FlaskClient
 from werkzeug.test import Client
 
 import pytest
+# os.environ['DONT_INITIALIZE_DB'] = 'True'
 import threedyspool
 
 
@@ -20,7 +21,10 @@ def client() -> Generator[FlaskClient, None, None]:
     test_upload_path = tempfile.mkdtemp()
     threedyspool.app.config['UPLOAD_PATH'] = test_upload_path
     threedyspool.app.config['TESTING'] = True
+    # nuke the db objects for every fixture use
+    threedyspool.setup_db()
     client = threedyspool.app.test_client()
+    threedyspool.dbconn.execute("INSERT INTO users (id, email, displayName, privlevel) VALUES ('a', 'a@example.com', 'A A', 1)")
 
     yield client
     shutil.rmtree(test_upload_path)
@@ -32,7 +36,6 @@ def test_no_jobs(client: FlaskClient):
 
 
 def test_new_job(client: FlaskClient):
-    threedyspool.dbconn.execute("INSERT INTO users (id, email, displayName, privlevel) VALUES ('a', 'a@example.com', 'A A', 1)")
     resp = client.post('/jobs')
     assert loads(resp.data) == {'data': None, 'message': 'Form data is missing name', 'status': 'BadRequest'}
 
@@ -99,3 +102,22 @@ def test_new_job(client: FlaskClient):
         assert h.read() == b'aa'
     with test_stp.open('rb') as h:
         assert h.read() == b'bb'
+
+
+def test_job_file(client):
+    testdata = {
+        'name': 'a',
+        'usage': '1234',
+    }
+    testfiles = {
+        'stl': (BytesIO(b'aa'), 'obj.stl'),
+        'orig': (BytesIO(b'bb'), 'obj.stp'),
+    }
+    testdata2 = testdata.copy()
+    testdata2.update(testfiles)
+    resp = client.post('/jobs', data=testdata2)
+    data = loads(resp.data)
+    assert data['message'] == "Files uploaded successfully"
+    assert data['status'] == "ok"
+    assert client.get('/jobs/1/files/obj.stl').data == b'aa'
+    assert client.get('/jobs/1/files/obj.stp').data == b'bb'
