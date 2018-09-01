@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import runpy
 import sqlite3
 from threading import RLock
-from typing import Any, Dict, NamedTuple, Optional, Type
+from typing import Any, ClassVar, Dict, List, NamedTuple, Optional, Type
 import tempfile
 from urllib.parse import quote, urljoin
 
@@ -64,8 +64,9 @@ class JSONEncoder(flask.json.JSONEncoder):
     def default(self, o: Any) -> Any:
         if dataclasses.is_dataclass(o):
             d: dict = dataclasses.asdict(o)
-            if isinstance(o, Job):
-                d['files'] = o.files
+            if hasattr(o, 'dict_properties'):
+                for prop in o.dict_properties:
+                    d[prop] = getattr(o, prop)
             return d
         return super().default(self, o)
 
@@ -99,6 +100,7 @@ class User:
     id: str
     email: str
     displayName: str
+    privlevel: int
 
 
 @dataclass
@@ -109,6 +111,7 @@ class Job:
     usage: str
     thumbUrl: str
     owner: Optional[User] = None
+    dict_properties: ClassVar[List[str]] = ['files']
 
     @property
     def files(self):
@@ -126,6 +129,43 @@ def db_make_obj(klass: Any, row: sqlite3.Row) -> Any:
         assert u
         obj.owner = db_make_obj(User, u)
     return obj
+
+
+@app.errorhandler(HttpError)
+def handle_errors(err: HttpError) -> Response:
+    resp = jsonify(err.to_dict())
+    resp.status_code = err.status_code
+    return resp
+
+
+OK_EXTENSIONS = set(['stl', 'stp', 'rvt', 'rfa', 'f3d', 'sat'])
+
+
+def filename_is_ok(name: str) -> bool:
+    return '.' in name and name.rsplit('.', 1)[1].lower() in OK_EXTENSIONS
+
+
+class Upload(NamedTuple):
+    secure_filename: str
+    fileobj: werkzeug.datastructures.FileStorage
+
+
+def check_upload(file: werkzeug.datastructures.FileStorage, which: str) -> Upload:
+    assert file
+    if not file.filename:
+        raise BadRequest('File part has no name')
+    secured_filename = werkzeug.utils.secure_filename(file.filename)
+    if not filename_is_ok(secured_filename):
+        raise BadRequest(f'File must have extension in {sorted(OK_EXTENSIONS)!r}')
+    return Upload(secured_filename, file)
+
+
+def get_url_for_model(job_id: int, model_name: str) -> str:
+    return flask.url_for('job_file', job_id=job_id, filename=model_name)
+
+
+def get_upload_dir(job_id: int) -> Path:
+    return Path(app.config['UPLOAD_PATH']) / str(job_id)
 
 
 OK_RESP = {
@@ -149,41 +189,25 @@ def jobs():
     return jsonify(resp)
 
 
-@app.errorhandler(HttpError)
-def handle_errors(err: HttpError) -> Response:
-    resp = jsonify(err.to_dict())
-    resp.status_code = err.status_code
-    return resp
+@app.route('/jobs/<int:job_id>')
+def job(job_id: int) -> Response:
+    """
+    Get the details of a specific job
+    """
+    resp = OK_RESP.copy()
+    with db_lock:
+        job = dbconn.execute("""SELECT * FROM jobs WHERE id = ?""", job_id)
+        resp['data'] = {
+            'job': db_make_obj(Job, job)
+        }
 
 
-OK_EXTENSIONS = set(['stl', 'stp', 'rvt', 'rfa', 'f3d', 'sat'])
-
-
-def filename_is_ok(name: str) -> bool:
-    return '.' in name and name.rsplit('.', 1)[1].lower() in OK_EXTENSIONS
-
-
-class Upload(NamedTuple):
-    secure_filename: str
-    fileobj: Any
-
-
-def check_upload(file: werkzeug.datastructures.FileStorage, which: str) -> Upload:
-    assert file
-    if not file.filename:
-        raise BadRequest('File part has no name')
-    secured_filename = werkzeug.utils.secure_filename(file.filename)
-    if not filename_is_ok(secured_filename):
-        raise BadRequest(f'File must have extension in {sorted(OK_EXTENSIONS)!r}')
-    return Upload(secured_filename, file)
-
-
-def get_url_for_model(job_id: int, model_name: str) -> str:
-    return urljoin(f'{app.config["UPLOAD_PATH_URL"]}/{job_id!s}/', quote(model_name.encode()))
-
-
-def get_upload_dir(job_id: int) -> Path:
-    return Path(app.config['UPLOAD_PATH']) / str(job_id)
+@app.route('/jobs/<int:job_id>/files/<filename>')
+def job_file(job_id: int, filename: str) -> Response:
+    return flask.send_from_directory(
+        Path(app.config['UPLOAD_PATH']) / str(job_id),
+        filename
+    )
 
 
 @app.route('/jobs', methods=('POST',))
@@ -216,7 +240,7 @@ def post_job():
     if len(deduped) != len(uploads):
         raise BadRequest('Duplicate filenames in request')
 
-    with dbconn, db_lock:
+    with db_lock, dbconn:
         dbdata = {
             'name': request.form['name'],
             'owner': 'a',
@@ -229,10 +253,11 @@ def post_job():
             dbdata
         )
         job_upload_dir = get_upload_dir(cursor.lastrowid)
-        job_upload_dir.mkdir()
+        job_upload_dir.mkdir(parents=True, exist_ok=False)
         for f in uploads:
             path = job_upload_dir / f.secure_filename
-            with path.open('wb') as h:
-                f.fileobj.save(h)
+            f.fileobj.save(str(path))
+            if os.stat(path).st_size == 0:
+                raise BadRequest('File has 0 size!')
         dbdata['id'] = cursor.lastrowid
     return jsonify({'status': 'ok', 'message': f'Files uploaded successfully', 'data': dbdata})

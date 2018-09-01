@@ -5,7 +5,8 @@ steps = [
     step("""CREATE TABLE users (
         id TEXT PRIMARY KEY,
         email TEXT NOT NULL,
-        displayName TEXT NOT NULL
+        displayName TEXT NOT NULL,
+        privlevel INT NOT NULL
     )"""),
     step("""CREATE TABLE jobs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,

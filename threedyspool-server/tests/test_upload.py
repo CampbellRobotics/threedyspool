@@ -1,6 +1,7 @@
 from io import BytesIO
 from json import dumps, loads
 import os
+from pathlib import Path
 import tempfile
 from typing import Generator
 import shutil
@@ -31,7 +32,7 @@ def test_no_jobs(client: FlaskClient):
 
 
 def test_new_job(client: FlaskClient):
-    threedyspool.dbconn.execute("INSERT INTO users (id, email, displayName) VALUES ('a', 'a@example.com', 'A A')")
+    threedyspool.dbconn.execute("INSERT INTO users (id, email, displayName, privlevel) VALUES ('a', 'a@example.com', 'A A', 1)")
     resp = client.post('/jobs')
     assert loads(resp.data) == {'data': None, 'message': 'Form data is missing name', 'status': 'BadRequest'}
     testdata = {
@@ -74,3 +75,12 @@ def test_new_job(client: FlaskClient):
     jobs = curs.fetchall()
     # if it isn't, that implies that some bad request got through
     assert len(jobs) == 1
+    upload_dir = Path(threedyspool.app.config['UPLOAD_PATH'])
+    test_stl = (upload_dir / '1' / 'obj.stl')
+    test_stp = (upload_dir / '1' / 'obj.stp')
+    assert test_stl.exists()
+    assert test_stp.exists()
+    with test_stl.open('rb') as h:
+        assert h.read() == b'aa'
+    with test_stp.open('rb') as h:
+        assert h.read() == b'bb'
