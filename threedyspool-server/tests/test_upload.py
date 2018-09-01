@@ -11,7 +11,6 @@ from flask.testing import FlaskClient
 from werkzeug.test import Client
 
 import pytest
-# os.environ['DONT_INITIALIZE_DB'] = 'True'
 import threedyspool
 
 
