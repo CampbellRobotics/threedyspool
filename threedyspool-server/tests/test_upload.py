@@ -35,6 +35,7 @@ def test_new_job(client: FlaskClient):
     threedyspool.dbconn.execute("INSERT INTO users (id, email, displayName, privlevel) VALUES ('a', 'a@example.com', 'A A', 1)")
     resp = client.post('/jobs')
     assert loads(resp.data) == {'data': None, 'message': 'Form data is missing name', 'status': 'BadRequest'}
+
     testdata = {
         'name': 'a',
         'usage': '1234',
@@ -42,6 +43,7 @@ def test_new_job(client: FlaskClient):
 
     resp = client.post('/jobs', data=testdata)
     assert loads(resp.data) == {'data': None, 'message': 'Job must be uploaded with STL file', 'status': 'BadRequest'}
+
     testfiles = {
         'stl': (BytesIO(b'aa'), 'obj.stl'),
         'orig': (BytesIO(b'bb'), 'obj.stl'),
@@ -50,6 +52,7 @@ def test_new_job(client: FlaskClient):
     testdata2.update(testfiles)
     resp = client.post('/jobs', data=testdata2)
     assert loads(resp.data) ==  {'message': 'Duplicate filenames in request', 'status': 'BadRequest', 'data': None}
+
     testfiles = {
         'stl': (BytesIO(b'aa'), 'obj.notok'),
         'orig': (BytesIO(b'bb'), 'obj.bad'),
@@ -60,6 +63,18 @@ def test_new_job(client: FlaskClient):
     assert loads(resp.data) == {
         'message': "File must have extension in ['f3d', 'rfa', 'rvt', 'sat', 'stl', 'stp']",
         'status': 'BadRequest', 'data': None}
+
+    testfiles = {
+        'stl': (BytesIO(b''), 'obj.stl'),
+        'orig': (BytesIO(b''), 'obj.stp'),
+    }
+    testdata2 = testdata.copy()
+    testdata2.update(testfiles)
+    resp = client.post('/jobs', data=testdata2)
+    assert loads(resp.data) == {
+        'message': "File has 0 size!",
+        'status': 'BadRequest', 'data': None}
+
     testfiles = {
         'stl': (BytesIO(b'aa'), 'obj.stl'),
         'orig': (BytesIO(b'bb'), 'obj.stp'),

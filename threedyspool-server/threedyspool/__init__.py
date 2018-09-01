@@ -4,6 +4,7 @@ from datetime import datetime
 import dataclasses
 from dataclasses import dataclass
 import runpy
+from shutil import rmtree
 import sqlite3
 from threading import RLock
 from typing import Any, ClassVar, Dict, List, NamedTuple, Optional, Type
@@ -247,6 +248,7 @@ def post_job():
             'date': int(datetime.utcnow().timestamp()),
             'usage': request.form['usage'],
         }
+        dbconn.execute('BEGIN')
         cursor = dbconn.execute(
             'INSERT INTO jobs (name, owner, date, usage)'
             'values (:name, :owner, :date, :usage)',
@@ -258,6 +260,7 @@ def post_job():
             path = job_upload_dir / f.secure_filename
             f.fileobj.save(str(path))
             if os.stat(path).st_size == 0:
+                rmtree(job_upload_dir)
                 raise BadRequest('File has 0 size!')
         dbdata['id'] = cursor.lastrowid
     return jsonify({'status': 'ok', 'message': f'Files uploaded successfully', 'data': dbdata})
